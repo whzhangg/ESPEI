@@ -9,7 +9,7 @@ dask-worker-space
 
 # Sphinx documentation
 docs/_build
-
+*.DS_Store
 # Editors
 *.sublime-project
 *.sublime-workspace
