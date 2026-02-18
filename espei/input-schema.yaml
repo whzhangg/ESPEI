@@ -124,6 +124,10 @@ mcmc:
       type: boolean
       default: True
       required: True
+    zpf_likelihood_scale:
+      type: float
+      default: 1000
+      required: True
     approximate_equilibrium:  # Whether to use an approximate (not refined) equilibrium based on `starting_point`
       type: boolean
       default: False

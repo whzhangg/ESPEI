@@ -240,6 +240,7 @@ def run_espei(run_settings):
         data_weights = mcmc_settings.get('data_weights')
         syms = mcmc_settings.get('symbols')
         approximate_equilibrium = mcmc_settings.get('approximate_equilibrium')
+        zpf_likelihood_scale = mcmc_settings.get('zpf_likelihood_scale')
 
         # set up and run the EmceeOptimizer
         optimizer = EmceeOptimizer(dbf, phase_models=phase_models, scheduler=client)
@@ -252,6 +253,7 @@ def run_espei(run_settings):
                       tracefile=tracefile, probfile=probfile,
                       mcmc_data_weights=data_weights,
                       approximate_equilibrium=approximate_equilibrium,
+                      zpf_likelihood_scale=zpf_likelihood_scale
                       )
 
         optimizer.dbf.to_file(output_settings['output_db'], if_exists='overwrite')

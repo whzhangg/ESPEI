@@ -8,6 +8,7 @@ import emcee
 from espei.priors import PriorSpec, build_prior_specs, rv_zero
 from espei.utils import unpack_piecewise, optimal_parameters, ImmediateClient
 from espei.error_functions.context import setup_context
+from espei.error_functions.zpf_error import ZPFResidual
 from .opt_base import OptimizerBase
 
 _log = logging.getLogger(__name__)
@@ -191,6 +192,7 @@ class EmceeOptimizer(OptimizerBase):
              chains_per_parameter=2, chain_std_deviation=0.1, deterministic=True,
              restart_trace=None, tracefile=None, probfile=None,
              mcmc_data_weights=None, approximate_equilibrium=False,
+             zpf_likelihood_scale=1000
              ):
         """
 
@@ -236,6 +238,12 @@ class EmceeOptimizer(OptimizerBase):
         ctx = setup_context(self.dbf, ds, symbols, data_weights=mcmc_data_weights, phase_models=self.phase_models, make_callables=cbs)
         symbols_to_fit = ctx['symbols_to_fit']
         initial_guess = np.array([unpack_piecewise(self.dbf.symbols[s]) for s in symbols_to_fit])
+
+        _robjs = ctx.get('residual_objs', [])
+        for _robj in _robjs:
+            if isinstance(_robj, ZPFResidual):
+                _robj.set_likelihood_scale(zpf_likelihood_scale)
+                _log.info(f"CUSTOM: Using likelihood scale of {zpf_likelihood_scale}")
 
         if approximate_equilibrium:
             warnings.warn(f"Approximate equilibrium is deprecated and will be removed in ESPEI 0.10. Got {approximate_equilibrium}.", DeprecationWarning)

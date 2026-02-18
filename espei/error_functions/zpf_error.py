@@ -383,11 +383,19 @@ def calculate_zpf_driving_forces(zpf_data: Sequence[Dict[str, Any]],
 def calculate_zpf_error(zpf_data: Sequence[Dict[str, Any]],
                         parameters: np.ndarray = None,
                         data_weight: int = 1.0,
-                        approximate_equilibrium: bool = False) -> float:
+                        approximate_equilibrium: bool = False,
+                        scale: float = 1000) -> float:
     """
     Calculate the likelihood due to phase equilibria data.
 
     For detailed documentation, see ``calculate_zpf_driving_forces``
+
+    Parameters
+    ---
+    scale:
+        the standard deviation to calculate likelihood, smaller
+        value gives more importance to the sample. default is 1000
+        as in the article
 
     Returns
     -------
@@ -403,7 +411,7 @@ def calculate_zpf_error(zpf_data: Sequence[Dict[str, Any]],
     weights = np.concatenate(weights)
     if np.any(np.logical_or(np.isinf(driving_forces), np.isnan(driving_forces))):
         return -np.inf
-    log_probabilites = norm.logpdf(driving_forces, loc=0, scale=1000/data_weight/weights)
+    log_probabilites = norm.logpdf(driving_forces, loc=0, scale=scale/data_weight/weights)
     _log.debug('Data weight: %s, driving forces: %s, weights: %s, probabilities: %s', data_weight, driving_forces, weights, log_probabilites)
     return np.sum(log_probabilites)
 
@@ -418,6 +426,9 @@ class ZPFResidual(ResidualFunction):
         weight: Optional[Dict[str, float]] = None,
         ):
         super().__init__(database, datasets, phase_models, symbols_to_fit, weight)
+        
+        self.likelihood_scale = 1000.0
+        
         if weight is not None:
             self.weight = weight.get("ZPF", 1.0)
         else:
@@ -435,6 +446,9 @@ class ZPFResidual(ResidualFunction):
         parameters = dict(zip(symbols_to_fit, [0]*len(symbols_to_fit)))
         self.zpf_data = get_zpf_data(database, comps, phases, datasets, parameters, model_dict)
 
+    def set_likelihood_scale(self, value: float) -> None:
+        self.likelihood_scale = value
+
     def get_residuals(self, parameters: ArrayLike) -> Tuple[List[float], List[float]]:
         driving_forces, weights = calculate_zpf_driving_forces(self.zpf_data, parameters, short_circuit=True)
         # Driving forces and weights are 2D ragged arrays with the shape (len(zpf_data), len(zpf_data['values']))
@@ -443,7 +457,8 @@ class ZPFResidual(ResidualFunction):
         return residuals, weights
 
     def get_likelihood(self, parameters) -> float:
-        likelihood = calculate_zpf_error(self.zpf_data, parameters, data_weight=self.weight)
+        likelihood = calculate_zpf_error(
+            self.zpf_data, parameters, data_weight=self.weight, scale=self.likelihood_scale)
         return likelihood
 
 
